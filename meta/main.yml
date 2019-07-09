@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  author: Tomas Jacik
+  description: Installs and configures PHP 7.0 (+FPM) with convention over configuration.
+  company: sunfoxcz
+  license: MIT
+  min_ansible_version: 1.8
+  plataforms:
+   - name: Ubuntu
+     versions:
+      - trusty
+  categories:
+   - web
+   - development
+  dependencies: []

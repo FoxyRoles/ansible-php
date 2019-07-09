@@ -1,0 +1,28 @@
+[web]
+prefix = /home/{{ default_user }}
+chdir = /home/{{ default_user }}
+user = {{ default_user }}
+group = {{ default_user }}
+
+listen = 127.0.0.1:90{{ php_version | regex_replace('\.', '') }}
+listen.backlog = -1
+listen.allowed_clients = 127.0.0.1
+
+pm = dynamic
+pm.max_children = 40
+pm.start_servers = 5
+pm.min_spare_servers = 3
+pm.max_spare_servers = 5
+pm.process_idle_timeout = 120s;
+pm.max_requests = 500
+pm.status_path = /php-status
+
+catch_workers_output = yes
+security.limit_extensions = .php
+
+slowlog = /var/log/php{{ php_version }}-fpm.slow.log
+request_slowlog_timeout = 10s
+
+rlimit_files = 4096
+
+php_admin_value[open_basedir]="/home/{{ default_user }}:/tmp"

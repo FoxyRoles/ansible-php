@@ -1,0 +1,50 @@
+---
+
+- name: PHP PPA present
+  apt_repository:
+    repo: ppa:ondrej/php
+    filename: php
+    state: present
+    update_cache: true
+
+- name: "PHP {{ php_version }} is installed"
+  apt:
+    pkg: "{{ php_modules | map('regex_replace', '(.*)', 'php%s-\\1' % php_version) | list }}"
+    state: present
+  notify:
+   - restart php
+
+- name: "PHP {{ php_version }} is running"
+  service: name="php{{ php_version }}-fpm" state=started enabled=yes
+
+- name: "PHP {{ php_version }} FPM php.ini configuration set"
+  lineinfile:
+    dest: "/etc/php/{{ php_version }}/fpm/php.ini"
+    regexp: "^;?{{ item.name }}"
+    line: "{{ item.name }} = {{ item.value }}"
+  when: php_ini_settings is defined and "fpm" in php_modules
+  with_items:
+   - "{{ php_ini_settings }}"
+  notify:
+   - restart php
+
+- name: "PHP {{ php_version }} CLI php.ini configuration set"
+  lineinfile:
+    dest: "/etc/php/{{ php_version }}/cli/php.ini"
+    regexp: "^;?{{ item.name }}"
+    line: "{{ item.name }} = {{ item.value }}"
+  when: php_ini_settings is defined and "cli" in php_modules
+  with_items:
+   - "{{ php_ini_settings }}"
+  notify:
+   - restart php
+
+- name: "PHP {{ php_version }} www pool config is absent"
+  file: path="/etc/php/{{ php_version }}/fpm/pool.d/www.conf" state=absent
+  notify:
+   - restart php
+
+- name: "PHP {{ php_version }} web pool config is present"
+  template: src=web.pool.conf.j2 dest="/etc/php/{{ php_version }}/fpm/pool.d/web.conf"
+  notify:
+   - restart php
