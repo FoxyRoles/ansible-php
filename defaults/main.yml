@@ -1,3 +1,11 @@
 ---
 
-default_user: web
+php_default_user: web
+php_pools:
+  web:
+    user: web
+    home: /home/web
+    max_children: 40
+    start_servers: 5
+    min_spare_servers: 3
+    max_spare_servers: 5

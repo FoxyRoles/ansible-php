@@ -14,16 +14,13 @@
   notify:
    - restart php
 
-- name: "PHP {{ php_version }} is running"
-  service: name="php{{ php_version }}-fpm" state=started enabled=yes
-
 - name: "PHP {{ php_version }} FPM php.ini configuration set"
   lineinfile:
     dest: "/etc/php/{{ php_version }}/fpm/php.ini"
-    regexp: "^;?{{ item.name }}"
-    line: "{{ item.name }} = {{ item.value }}"
-  when: php_ini_settings is defined and "fpm" in php_modules
-  with_items:
+    regexp: "^;?{{ item.key }}"
+    line: "{{ item.key }} = {{ item.value }}"
+  when: "php_ini_settings is defined and 'fpm' in php_modules"
+  with_dict:
    - "{{ php_ini_settings }}"
   notify:
    - restart php
@@ -31,20 +28,44 @@
 - name: "PHP {{ php_version }} CLI php.ini configuration set"
   lineinfile:
     dest: "/etc/php/{{ php_version }}/cli/php.ini"
-    regexp: "^;?{{ item.name }}"
-    line: "{{ item.name }} = {{ item.value }}"
-  when: php_ini_settings is defined and "cli" in php_modules
-  with_items:
+    regexp: "^;?{{ item.key }}"
+    line: "{{ item.key }} = {{ item.value }}"
+  when: "php_ini_settings is defined and 'cli' in php_modules"
+  with_dict:
    - "{{ php_ini_settings }}"
   notify:
    - restart php
 
 - name: "PHP {{ php_version }} www pool config is absent"
-  file: path="/etc/php/{{ php_version }}/fpm/pool.d/www.conf" state=absent
+  file:
+    path: "/etc/php/{{ php_version }}/fpm/pool.d/www.conf"
+    state: absent
+  when: "'fpm' in php_modules"
   notify:
    - restart php
 
-- name: "PHP {{ php_version }} web pool config is present"
-  template: src=web.pool.conf.j2 dest="/etc/php/{{ php_version }}/fpm/pool.d/web.conf"
+- name: "PHP {{ php_version }} pool config is present"
+  template:
+    src: web.pool.conf.j2
+    dest: "/etc/php/{{ php_version }}/fpm/pool.d/{{ item.key }}.conf"
+  vars:
+    pool: "{{ item.key }}"
+    user: "{{ item.value.user | default(php_default_user) }}"
+    home: "{{ item.value.home | default('/home/' + item.value.user | default(php_default_user)) }}"
+    port: "{{ item.value.port | default('90' + (php_version | regex_replace('\\.', ''))) }}"
+    max_children: "{{ item.value.max_children | default('40') }}"
+    start_servers: "{{ item.value.start_servers | default('5') }}"
+    min_spare_servers: "{{ item.value.min_spare_servers | default('3') }}"
+    max_spare_servers: "{{ item.value.max_spare_servers | default('5') }}"
+  when: "'fpm' in php_modules"
+  with_dict:
+    - "{{ php_pools }}"
   notify:
    - restart php
+
+- name: "PHP {{ php_version }} is running"
+  service:
+    name: "php{{ php_version }}-fpm"
+    state: started
+    enabled: yes
+  when: "'fpm' in php_modules"
