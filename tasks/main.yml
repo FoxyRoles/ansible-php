@@ -9,7 +9,7 @@
 
 - name: "PHP {{ php_version }} is installed"
   apt:
-    pkg: "{{ php_modules | map('regex_replace', '(.*)', 'php%s-\\1' % php_version) | list }}"
+    pkg: "{{ php_modules | map('regex_replace', '^(.*)$', 'php%s-\\1' % php_version) | list }}"
     state: present
   notify:
    - restart php
