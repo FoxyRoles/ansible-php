@@ -1,0 +1,65 @@
+---
+
+- name: Find legacy PHP repository definitions
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns:
+      - php.list
+      - php.sources
+      - sury-php.sources
+      - ondrej-php.list
+      - ondrej-php.sources
+      - ondrej-ubuntu-php-*.list
+      - ondrej-ubuntu-php-*.sources
+    file_type: file
+  register: php_legacy_repository_files
+
+- name: Remove legacy PHP repository definitions before updating APT
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ php_legacy_repository_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: php_legacy_repositories
+
+- name: Install PHP repository dependencies
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - python3-debian
+      - xz-utils
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install Sury archive keyring
+  ansible.builtin.apt:
+    deb: https://packages.sury.org/debsuryorg-archive-keyring.deb
+    state: present
+  register: php_repository_keyring
+
+- name: Configure Sury PHP repository
+  ansible.builtin.deb822_repository:
+    name: debsuryorg-php
+    types: deb
+    uris: https://packages.sury.org/php/
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: /usr/share/keyrings/debsuryorg-archive-keyring.gpg
+    state: present
+    mode: '0644'
+  register: php_repository
+
+- name: Update APT cache after PHP repository changes
+  ansible.builtin.apt:
+    update_cache: true
+  when: php_repository_keyring is changed or php_repository is changed or php_legacy_repositories is changed
+
+- name: Install PHP packages
+  ansible.builtin.import_tasks: packages.yml
+  vars:
+    php_runtime_packages: >-
+      {{ ['php' ~ (php_version | string) ~ '-common']
+         + (php_modules | select('in', ['cli', 'fpm'])
+            | map('regex_replace', '^', 'php' ~ (php_version | string) ~ '-') | list) }}

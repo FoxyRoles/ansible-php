@@ -1,18 +1,20 @@
 ---
 galaxy_info:
+  namespace: sunfoxcz
+  role_name: php
   author: Tomas Jacik
   description: Installs and configures PHP (+FPM) with convention over configuration.
   company: sunfoxcz
   license: MIT
-  min_ansible_version: 2.9
-  plataforms:
-   - name: Ubuntu
-     versions:
-      - trusty
-      - xenial
-      - bionic
-      #- focal
-  categories:
-   - web
-   - development
-  dependencies: []
+  min_ansible_version: '2.15'
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+        - resolute
+  galaxy_tags:
+    - web
+    - development
+    - php
+dependencies: []

@@ -1,0 +1,17 @@
+/var/log/php/{{ php_version }}-fpm.log
+/var/log/php/{{ php_version }}-fpm.slow.log
+{
+	daily
+	missingok
+	rotate 14
+	compress
+	delaycompress
+	notifempty
+	create 0640 root adm
+	sharedscripts
+	postrotate
+		if [ -x /usr/lib/php/php{{ php_version }}-fpm-reopenlogs ]; then
+			/usr/lib/php/php{{ php_version }}-fpm-reopenlogs;
+		fi
+	endscript
+}

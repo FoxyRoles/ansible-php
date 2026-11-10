@@ -1,0 +1,61 @@
+---
+
+- name: "Install runtime packages for PHP {{ php_version }}"
+  ansible.builtin.apt:
+    name: "{{ php_runtime_packages }}"
+    state: present
+  notify: "Restart PHP FPM {{ php_version }}"
+
+- name: "Read compiled-in CLI modules for PHP {{ php_version }}"
+  ansible.builtin.command:
+    argv:
+      - "/usr/bin/php{{ php_version }}"
+      - -n
+      - -m
+  register: php_cli_module_info
+  changed_when: false
+  check_mode: false
+  when: "'cli' in php_modules"
+
+- name: "Read compiled-in FPM modules for PHP {{ php_version }}"
+  ansible.builtin.command:
+    argv:
+      - "/usr/sbin/php-fpm{{ php_version }}"
+      - -n
+      - -m
+  register: php_fpm_module_info
+  changed_when: false
+  check_mode: false
+  when: "'fpm' in php_modules"
+
+- name: "Read bundled package modules for PHP {{ php_version }}"
+  ansible.builtin.command:
+    argv: "{{ ['dpkg-query', '--show', '--showformat=${Provides}, '] + php_runtime_packages }}"
+  register: php_bundled_package_info
+  changed_when: false
+  check_mode: false
+
+- name: "Install extensions for PHP {{ php_version }}"
+  ansible.builtin.apt:
+    name: >-
+      {{ php_modules | reject('in', php_bundled_modules)
+         | map('regex_replace', '^', 'php' ~ (php_version | string) ~ '-') | list }}
+    state: present
+  vars:
+    php_cli_builtin_modules: >-
+      {{ php_cli_module_info.stdout_lines | default([])
+         | select('match', '^[A-Za-z]') | map('lower')
+         | map('regex_replace', '^zend ', '') | list }}
+    php_fpm_builtin_modules: >-
+      {{ php_fpm_module_info.stdout_lines | default([])
+         | select('match', '^[A-Za-z]') | map('lower')
+         | map('regex_replace', '^zend ', '') | list }}
+    php_builtin_modules: >-
+      {{ php_cli_builtin_modules | intersect(php_fpm_builtin_modules)
+         if 'cli' in php_modules and 'fpm' in php_modules
+         else php_cli_builtin_modules + php_fpm_builtin_modules }}
+    php_bundled_modules: >-
+      {{ (php_bundled_package_info.stdout
+          | regex_findall('php' ~ (php_version | string | regex_escape) ~ '-([a-z0-9-]+)'))
+         + php_builtin_modules }}
+  notify: "Restart PHP FPM {{ php_version }}"

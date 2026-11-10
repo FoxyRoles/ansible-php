@@ -1,0 +1,25 @@
+---
+
+- name: Copy shared PHP configuration
+  ansible.builtin.copy:
+    src: user_config.ini
+    dest: /etc/php/user_config.ini
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart PHP FPM after shared configuration changes
+
+- name: "Link CLI configuration for PHP {{ php_version }}"
+  ansible.builtin.file:
+    src: /etc/php/user_config.ini
+    dest: /etc/php/{{ php_version }}/cli/conf.d/99-user_config.ini
+    state: link
+  when: "'cli' in php_modules"
+
+- name: "Link FPM configuration for PHP {{ php_version }}"
+  ansible.builtin.file:
+    src: /etc/php/user_config.ini
+    dest: /etc/php/{{ php_version }}/fpm/conf.d/99-user_config.ini
+    state: link
+  when: "'fpm' in php_modules"
+  notify: "Restart PHP FPM {{ php_version }}"

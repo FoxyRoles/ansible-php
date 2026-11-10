@@ -1,0 +1,36 @@
+---
+
+- name: "Disable default FPM pool for PHP {{ php_version }}"
+  ansible.builtin.copy:
+    content: |
+      ; The default www pool is disabled by Ansible.
+      ; Pool definitions are managed through php_pools.
+    dest: "/etc/php/{{ php_version }}/fpm/pool.d/www.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  when: "'www' not in php_pools"
+  notify:
+    - "Restart PHP FPM {{ php_version }}"
+
+- name: "Configure FPM pools for PHP {{ php_version }}"
+  ansible.builtin.template:
+    src: web.pool.conf.j2
+    dest: "/etc/php/{{ php_version }}/fpm/pool.d/{{ item.key }}.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  vars:
+    php_pool_name: "{{ item.key }}"
+    php_pool_user: "{{ item.value.user | default(php_default_user) }}"
+    php_pool_home: "{{ item.value.home | default('/home/' ~ (item.value.user | default(php_default_user))) }}"
+    php_pool_port: "{{ item.value.port | default('90' ~ (php_version | replace('.', ''))) }}"
+    php_pool_max_children: "{{ item.value.max_children | default('40') }}"
+    php_pool_start_servers: "{{ item.value.start_servers | default('5') }}"
+    php_pool_min_spare_servers: "{{ item.value.min_spare_servers | default('3') }}"
+    php_pool_max_spare_servers: "{{ item.value.max_spare_servers | default('5') }}"
+  loop: "{{ php_pools | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  notify:
+    - "Restart PHP FPM {{ php_version }}"

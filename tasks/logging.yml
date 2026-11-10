@@ -1,0 +1,30 @@
+---
+
+- name: Install logrotate
+  ansible.builtin.apt:
+    name: logrotate
+    state: present
+
+- name: Create PHP logging directory
+  ansible.builtin.file:
+    path: /var/log/php
+    state: directory
+    owner: root
+    group: adm
+    mode: '0750'
+
+- name: "Configure FPM error log for PHP {{ php_version }}"
+  ansible.builtin.lineinfile:
+    path: /etc/php/{{ php_version }}/fpm/php-fpm.conf
+    regexp: '^\s*;?\s*error_log\s*='
+    line: "error_log = /var/log/php/{{ php_version }}-fpm.log"
+  notify:
+    - "Restart PHP FPM {{ php_version }}"
+
+- name: "Configure FPM log rotation for PHP {{ php_version }}"
+  ansible.builtin.template:
+    src: logrotate.conf.j2
+    dest: "/etc/logrotate.d/php{{ php_version }}-fpm"
+    owner: root
+    group: root
+    mode: '0644'

@@ -1,7 +1,8 @@
 ---
 
-- name: restart php
-  service:
+- name: "Restart PHP FPM {{ php_version }}"
+  ansible.builtin.service:
     name: "php{{ php_version }}-fpm"
     state: restarted
   when: "'fpm' in php_modules"
+  listen: Restart PHP FPM after shared configuration changes

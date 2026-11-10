@@ -1,18 +1,18 @@
-[{{ pool }}]
-prefix = {{ home }}
-chdir = {{ home }}
-user = {{ user }}
-group = {{ user }}
+[{{ php_pool_name }}]
+prefix = {{ php_pool_home }}
+chdir = {{ php_pool_home }}
+user = {{ php_pool_user }}
+group = {{ php_pool_user }}
 
-listen = 127.0.0.1:{{ port }}
+listen = 127.0.0.1:{{ php_pool_port }}
 listen.backlog = -1
 listen.allowed_clients = 127.0.0.1
 
 pm = dynamic
-pm.max_children = {{ max_children }}
-pm.start_servers = {{ start_servers }}
-pm.min_spare_servers = {{ min_spare_servers }}
-pm.max_spare_servers = {{ max_spare_servers }}
+pm.max_children = {{ php_pool_max_children }}
+pm.start_servers = {{ php_pool_start_servers }}
+pm.min_spare_servers = {{ php_pool_min_spare_servers }}
+pm.max_spare_servers = {{ php_pool_max_spare_servers }}
 pm.process_idle_timeout = 120s;
 pm.max_requests = 500
 pm.status_path = /php-status
@@ -20,9 +20,9 @@ pm.status_path = /php-status
 catch_workers_output = yes
 security.limit_extensions = .php
 
-slowlog = /var/log/php{{ php_version }}-fpm.slow.log
+slowlog = /var/log/php/{{ php_version }}-fpm.slow.log
 request_slowlog_timeout = 10s
 
 rlimit_files = 4096
 
-php_admin_value[open_basedir]="{{ home }}:/tmp"
+php_admin_value[open_basedir]="{{ php_pool_home }}:/tmp"
